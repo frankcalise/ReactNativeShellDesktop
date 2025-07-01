@@ -5,13 +5,14 @@
  * @format
  */
 
-import React from 'react';
+import React, {useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   useColorScheme,
   View,
 } from 'react-native';
@@ -23,6 +24,8 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+
+import RunShellCommand from './app/specs/NativeRunShellCommand';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -55,10 +58,45 @@ function Section({children, title}: SectionProps): React.JSX.Element {
 }
 
 function App(): React.JSX.Element {
+  const p = console.log;
+  const shell = RunShellCommand.runSync;
+  const shellAsync = RunShellCommand.runAsync;
+  const [nodeVersion, setNodeVersion] = useState<string | null>(null);
+  const [bunVersion, setBunVersion] = useState<string | null>(null);
+  const arch = (global as any)?.nativeFabricUIManager ? 'Fabric' : 'Paper';
+
+  const testRegularCommands = () => {
+    p('Testing regular commands...');
+
+    const p1: number = performance.now();
+    const bun: string = RunShellCommand.runSync('bun --version').trim();
+    const p1b: number = performance.now() - p1;
+
+    const p2: number = performance.now();
+    const node: string = RunShellCommand.runSync('node --version').trim();
+    const p2b: number = performance.now() - p2;
+
+    p(`Bun: ${bun} in ${p1b}ms`);
+    p(`Node: ${node} in ${p2b}ms`);
+
+    setNodeVersion(node);
+    setBunVersion(bun);
+
+    // Test async command
+    const p3: number = performance.now();
+    shellAsync("echo 'Hello from async command!'")
+      .then((result: string) => {
+        const p3b: number = performance.now() - p3;
+        p(`Async result: ${result} in ${p3b}ms`);
+      })
+      .catch((error: any) => p(`Async error: ${error}`));
+  };
+
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+    flex: 1,
   };
 
   /*
@@ -78,10 +116,9 @@ function App(): React.JSX.Element {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
       />
-      <ScrollView
-        style={backgroundStyle}>
+      <ScrollView style={backgroundStyle}>
         <View style={{paddingRight: safePadding}}>
-          <Header/>
+          <Header />
         </View>
         <View
           style={{
@@ -89,20 +126,14 @@ function App(): React.JSX.Element {
             paddingHorizontal: safePadding,
             paddingBottom: safePadding,
           }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
+          <TouchableOpacity style={styles.button} onPress={testRegularCommands}>
+            <Text style={styles.buttonText}>▶️ Run</Text>
+          </TouchableOpacity>
+          <Section title="Arch">{arch}</Section>
+          <Section title="Bun Version">{bunVersion || 'Not detected'}</Section>
+          <Section title="Node Version">
+            {nodeVersion || 'Not detected'}
           </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
         </View>
       </ScrollView>
     </View>
@@ -113,6 +144,24 @@ const styles = StyleSheet.create({
   sectionContainer: {
     marginTop: 32,
     paddingHorizontal: 24,
+  },
+  button: {
+    backgroundColor: 'orange',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignSelf: 'flex-start',
+    marginTop: 32,
+    shadowColor: 'orange',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: {width: 0, height: 2},
+  },
+  buttonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 0.2,
   },
   sectionTitle: {
     fontSize: 24,

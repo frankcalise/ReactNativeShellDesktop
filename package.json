@@ -46,5 +46,16 @@
       "namespace": "ReactNativeShellDesktop",
       "template": "cpp-app"
     }
+  },
+   "codegenConfig": {
+    "name": "RNModulesSpec",
+    "type": "modules",
+    "jsSrcsDir": "app/specs",
+    "includesGeneratedCode": true,
+    "windows": {
+      "namespace": "RNModulesCodegen",
+      "outputDirectory": "windows/RNModules/codegen",
+      "separateDataTypes": true
+    }
   }
 }

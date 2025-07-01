@@ -1,0 +1,13 @@
+{
+  "files.associations": {
+    "*.ejs": "html",
+    "*.mdx": "markdown",
+    "algorithm": "cpp",
+    "bitset": "cpp",
+    "iterator": "cpp",
+    "xhash": "cpp",
+    "xmemory": "cpp",
+    "xtree": "cpp",
+    "xutility": "cpp"
+  }
+}

@@ -58,7 +58,7 @@ function Section({children, title}: SectionProps): React.JSX.Element {
 }
 
 function App(): React.JSX.Element {
-  const p = console.log;
+  const p = console.warn;
   const shell = RunShellCommand.runSync;
   const shellAsync = RunShellCommand.runAsync;
   const [nodeVersion, setNodeVersion] = useState<string | null>(null);

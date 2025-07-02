@@ -15,21 +15,73 @@ namespace {
 
     // Helper function to run a command and return its output
     std::string RunCommandSync(const std::string& command) {
-        std::string fullCommand = "cmd /C \"" + command + "\"";
-        FILE* pipe = _popen(fullCommand.c_str(), "r");
-        if (!pipe) {
-            throw std::runtime_error("Failed to open pipe");
+        std::string fullCommand = "cmd /C " + command;
+
+        SECURITY_ATTRIBUTES saAttr{};
+        saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+        saAttr.bInheritHandle = TRUE;
+        saAttr.lpSecurityDescriptor = nullptr;
+
+        HANDLE hReadPipe, hWritePipe;
+        if (!CreatePipe(&hReadPipe, &hWritePipe, &saAttr, 0)) {
+            throw std::runtime_error("Failed to create pipe");
         }
 
+        if (!SetHandleInformation(hReadPipe, HANDLE_FLAG_INHERIT, 0)) {
+            CloseHandle(hReadPipe);
+            CloseHandle(hWritePipe);
+            throw std::runtime_error("Failed to set pipe handle information");
+        }
+
+        STARTUPINFOA si{};
+        PROCESS_INFORMATION pi{};
+        si.cb = sizeof(STARTUPINFOA);
+        si.dwFlags |= STARTF_USESTDHANDLES;
+        si.hStdOutput = hWritePipe;
+        si.hStdError = hWritePipe;
+        si.hStdInput = nullptr;
+
+        DWORD creationFlags = CREATE_NO_WINDOW;
+
+        std::vector<char> cmdLine(fullCommand.begin(), fullCommand.end());
+        cmdLine.push_back('\0');
+
+        BOOL success = CreateProcessA(
+            nullptr,
+            cmdLine.data(),
+            nullptr,
+            nullptr,
+            TRUE,
+            creationFlags,
+            nullptr,
+            nullptr,
+            &si,
+            &pi
+        );
+
+        CloseHandle(hWritePipe); // Parent doesn't need to write
+
+        if (!success) {
+            CloseHandle(hReadPipe);
+            throw std::runtime_error("Failed to launch process");
+        }
+
+        std::ostringstream output;
         char buffer[128];
-        std::ostringstream result;
+        DWORD bytesRead;
+        BOOL readSuccess;
 
-        while (fgets(buffer, sizeof(buffer), pipe)) {
-            result << buffer;
+        while ((readSuccess = ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, nullptr)) && bytesRead != 0) {
+            buffer[bytesRead] = '\0';
+            output << buffer;
         }
 
-        _pclose(pipe);
-        return result.str();
+        CloseHandle(hReadPipe);
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+
+        return output.str();
     }
 
 } // namespace
